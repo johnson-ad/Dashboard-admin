@@ -9,6 +9,8 @@ import { Badge } from '@/components/ui/Badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/Table';
 import { Plus, Search, Edit, Trash2, Tag, Percent, DollarSign } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { CouponModal } from '@/components/modals/CouponModal';
+import { DeleteConfirmModal } from '@/components/modals/DeleteConfirmModal';
 
 interface Coupon {
   id: string;
@@ -28,6 +30,9 @@ export default function CouponsPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
 
   useEffect(() => {
     fetchCoupons();
@@ -47,6 +52,33 @@ export default function CouponsPage() {
     }
   };
 
+  const handleEdit = (coupon: Coupon) => {
+    setSelectedCoupon(coupon);
+    setShowModal(true);
+  };
+
+  const handleDelete = (coupon: Coupon) => {
+    setSelectedCoupon(coupon);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedCoupon) return;
+    
+    try {
+      const response = await fetch(`/api/coupons/${selectedCoupon.id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        fetchCoupons();
+        setSelectedCoupon(null);
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+    }
+  };
+
   const filteredCoupons = coupons.filter(coupon =>
     coupon.code.toLowerCase().includes(search.toLowerCase()) ||
     coupon.description?.toLowerCase().includes(search.toLowerCase())
@@ -63,7 +95,6 @@ export default function CouponsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -73,12 +104,11 @@ export default function CouponsPage() {
           <h1 className="text-3xl font-bold text-white mb-2">Coupons</h1>
           <p className="text-gray-400">Manage discount codes and promotions</p>
         </div>
-        <Button icon={<Plus className="w-4 h-4" />}>
+        <Button icon={<Plus className="w-4 h-4" />} onClick={() => setShowModal(true)}>
           Create Coupon
         </Button>
       </motion.div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardContent className="pt-6">
@@ -133,7 +163,6 @@ export default function CouponsPage() {
         </Card>
       </div>
 
-      {/* Coupons Table */}
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
@@ -202,10 +231,20 @@ export default function CouponsPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        <Button size="sm" variant="ghost" icon={<Edit className="w-4 h-4" />}>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          icon={<Edit className="w-4 h-4" />}
+                          onClick={() => handleEdit(coupon)}
+                        >
                           Edit
                         </Button>
-                        <Button size="sm" variant="ghost" icon={<Trash2 className="w-4 h-4" />}>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          icon={<Trash2 className="w-4 h-4" />}
+                          onClick={() => handleDelete(coupon)}
+                        >
                           Delete
                         </Button>
                       </div>
@@ -217,6 +256,21 @@ export default function CouponsPage() {
           )}
         </CardContent>
       </Card>
+
+      <CouponModal
+        isOpen={showModal}
+        onClose={() => { setShowModal(false); setSelectedCoupon(null); }}
+        onSuccess={fetchCoupons}
+        coupon={selectedCoupon}
+      />
+
+      <DeleteConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmDelete}
+        title="Delete Coupon"
+        message={`Are you sure you want to delete coupon "${selectedCoupon?.code}"?`}
+      />
     </div>
   );
 }

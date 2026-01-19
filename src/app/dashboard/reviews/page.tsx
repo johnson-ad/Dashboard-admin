@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/Table';
-import { Search, Star, CheckCircle, XCircle, MessageSquare } from 'lucide-react';
+import { Search, Star, CheckCircle, XCircle, MessageSquare, Trash2 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
+import { DeleteConfirmModal } from '@/components/modals/DeleteConfirmModal';
 
 interface Review {
   id: string;
@@ -26,6 +27,8 @@ export default function ReviewsPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedReview, setSelectedReview] = useState<Review | null>(null);
 
   useEffect(() => {
     fetchReviews();
@@ -42,6 +45,60 @@ export default function ReviewsPage() {
       console.error('Error fetching reviews:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleApprove = async (review: Review) => {
+    try {
+      const response = await fetch(`/api/reviews/${review.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_approved: true }),
+      });
+
+      if (response.ok) {
+        fetchReviews();
+      }
+    } catch (error) {
+      console.error('Approve error:', error);
+    }
+  };
+
+  const handleReject = async (review: Review) => {
+    try {
+      const response = await fetch(`/api/reviews/${review.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_approved: false }),
+      });
+
+      if (response.ok) {
+        fetchReviews();
+      }
+    } catch (error) {
+      console.error('Reject error:', error);
+    }
+  };
+
+  const handleDelete = (review: Review) => {
+    setSelectedReview(review);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedReview) return;
+    
+    try {
+      const response = await fetch(`/api/reviews/${selectedReview.id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        fetchReviews();
+        setSelectedReview(null);
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
     }
   };
 
@@ -76,7 +133,6 @@ export default function ReviewsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -85,7 +141,6 @@ export default function ReviewsPage() {
         <p className="text-gray-400">Moderate and manage customer reviews</p>
       </motion.div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardContent className="pt-6">
@@ -138,7 +193,6 @@ export default function ReviewsPage() {
         </Card>
       </div>
 
-      {/* Reviews Table */}
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
@@ -196,13 +250,32 @@ export default function ReviewsPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        {!review.is_approved && (
-                          <Button size="sm" variant="ghost" icon={<CheckCircle className="w-4 h-4" />}>
+                        {!review.is_approved ? (
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            icon={<CheckCircle className="w-4 h-4" />}
+                            onClick={() => handleApprove(review)}
+                          >
                             Approve
                           </Button>
+                        ) : (
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            icon={<XCircle className="w-4 h-4" />}
+                            onClick={() => handleReject(review)}
+                          >
+                            Reject
+                          </Button>
                         )}
-                        <Button size="sm" variant="ghost" icon={<XCircle className="w-4 h-4" />}>
-                          Reject
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          icon={<Trash2 className="w-4 h-4" />}
+                          onClick={() => handleDelete(review)}
+                        >
+                          Delete
                         </Button>
                       </div>
                     </TableCell>
@@ -213,6 +286,14 @@ export default function ReviewsPage() {
           )}
         </CardContent>
       </Card>
+
+      <DeleteConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmDelete}
+        title="Delete Review"
+        message="Are you sure you want to delete this review? This action cannot be undone."
+      />
     </div>
   );
 }

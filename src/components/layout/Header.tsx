@@ -5,6 +5,7 @@ import { Bell, Menu, Search, User, LogOut } from 'lucide-react';
 import { useState } from 'react';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -38,6 +39,8 @@ export function Header({ onMenuClick }: HeaderProps) {
 
         {/* Right Section */}
         <div className="flex items-center gap-4">
+          {/* Theme Toggle */}
+          <ThemeToggle />
           {/* Notifications */}
           <div className="relative">
             <motion.button
