@@ -9,6 +9,8 @@ import { Badge } from '@/components/ui/Badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/Table';
 import { Plus, Search, Edit, Trash2, Package } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
+import { ProductModal } from '@/components/modals/ProductModal';
+import { DeleteConfirmModal } from '@/components/modals/DeleteConfirmModal';
 
 interface Product {
   id: string;
@@ -17,17 +19,23 @@ interface Product {
   price: number;
   stock_quantity: number;
   category_name: string;
+  category_id?: string;
   is_active: boolean;
   is_featured: boolean;
 }
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   useEffect(() => {
     fetchProducts();
+    fetchCategories();
   }, []);
 
   const fetchProducts = async () => {
@@ -42,6 +50,57 @@ export default function ProductsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch('/api/categories');
+      if (response.ok) {
+        const data = await response.json();
+        setCategories(data.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
+
+  const handleEdit = (product: Product) => {
+    setSelectedProduct(product);
+    setShowModal(true);
+  };
+
+  const handleDelete = (product: Product) => {
+    setSelectedProduct(product);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedProduct) return;
+    
+    try {
+      const response = await fetch(`/api/products/${selectedProduct.id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        fetchProducts();
+        setSelectedProduct(null);
+      } else {
+        alert('Error deleting product');
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Error deleting product');
+    }
+  };
+
+  const handleModalClose = () => {
+    setShowModal(false);
+    setSelectedProduct(null);
+  };
+
+  const handleSuccess = () => {
+    fetchProducts();
   };
 
   const filteredProducts = products.filter(product =>
@@ -61,7 +120,7 @@ export default function ProductsPage() {
           <h1 className="text-3xl font-bold text-white mb-2">Products</h1>
           <p className="text-gray-400">Manage your product inventory</p>
         </div>
-        <Button icon={<Plus className="w-4 h-4" />}>
+        <Button icon={<Plus className="w-4 h-4" />} onClick={() => setShowModal(true)}>
           Add Product
         </Button>
       </motion.div>
@@ -197,10 +256,20 @@ export default function ProductsPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        <Button size="sm" variant="ghost" icon={<Edit className="w-4 h-4" />}>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          icon={<Edit className="w-4 h-4" />}
+                          onClick={() => handleEdit(product)}
+                        >
                           Edit
                         </Button>
-                        <Button size="sm" variant="ghost" icon={<Trash2 className="w-4 h-4" />}>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          icon={<Trash2 className="w-4 h-4" />}
+                          onClick={() => handleDelete(product)}
+                        >
                           Delete
                         </Button>
                       </div>
@@ -212,6 +281,23 @@ export default function ProductsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Modals */}
+      <ProductModal
+        isOpen={showModal}
+        onClose={handleModalClose}
+        onSuccess={handleSuccess}
+        product={selectedProduct}
+        categories={categories}
+      />
+
+      <DeleteConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmDelete}
+        title="Delete Product"
+        message={`Are you sure you want to delete "${selectedProduct?.name}"? This action cannot be undone.`}
+      />
     </div>
   );
 }

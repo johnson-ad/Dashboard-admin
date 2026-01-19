@@ -6,6 +6,8 @@ import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Plus, Edit, Trash2, Folder, Package } from 'lucide-react';
+import { CategoryModal } from '@/components/modals/CategoryModal';
+import { DeleteConfirmModal } from '@/components/modals/DeleteConfirmModal';
 
 interface Category {
   id: string;
@@ -20,6 +22,9 @@ interface Category {
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
 
   useEffect(() => {
     fetchCategories();
@@ -39,9 +44,35 @@ export default function CategoriesPage() {
     }
   };
 
+  const handleEdit = (category: Category) => {
+    setSelectedCategory(category);
+    setShowModal(true);
+  };
+
+  const handleDelete = (category: Category) => {
+    setSelectedCategory(category);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedCategory) return;
+    
+    try {
+      const response = await fetch(`/api/categories/${selectedCategory.id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        fetchCategories();
+        setSelectedCategory(null);
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -51,12 +82,11 @@ export default function CategoriesPage() {
           <h1 className="text-3xl font-bold text-white mb-2">Categories</h1>
           <p className="text-gray-400">Organize your products into categories</p>
         </div>
-        <Button icon={<Plus className="w-4 h-4" />}>
+        <Button icon={<Plus className="w-4 h-4" />} onClick={() => setShowModal(true)}>
           Add Category
         </Button>
       </motion.div>
 
-      {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardContent className="pt-6">
@@ -101,7 +131,6 @@ export default function CategoriesPage() {
         </Card>
       </div>
 
-      {/* Categories Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {loading ? (
           <div className="col-span-full text-center py-8 text-gray-400">
@@ -139,8 +168,18 @@ export default function CategoriesPage() {
                       <span>{category.product_count || 0} products</span>
                     </div>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="ghost" icon={<Edit className="w-4 h-4" />} />
-                      <Button size="sm" variant="ghost" icon={<Trash2 className="w-4 h-4" />} />
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        icon={<Edit className="w-4 h-4" />}
+                        onClick={() => handleEdit(category)}
+                      />
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        icon={<Trash2 className="w-4 h-4" />}
+                        onClick={() => handleDelete(category)}
+                      />
                     </div>
                   </div>
                 </CardContent>
@@ -149,6 +188,21 @@ export default function CategoriesPage() {
           ))
         )}
       </div>
+
+      <CategoryModal
+        isOpen={showModal}
+        onClose={() => { setShowModal(false); setSelectedCategory(null); }}
+        onSuccess={fetchCategories}
+        category={selectedCategory}
+      />
+
+      <DeleteConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmDelete}
+        title="Delete Category"
+        message={`Are you sure you want to delete "${selectedCategory?.name}"?`}
+      />
     </div>
   );
 }

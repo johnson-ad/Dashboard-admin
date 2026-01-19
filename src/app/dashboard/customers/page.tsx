@@ -7,8 +7,10 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/Table';
-import { Search, Eye, Users, UserPlus, DollarSign, ShoppingBag } from 'lucide-react';
+import { Search, Eye, Users, UserPlus, DollarSign, ShoppingBag, Edit, Trash2 } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { CustomerModal } from '@/components/modals/CustomerModal';
+import { DeleteConfirmModal } from '@/components/modals/DeleteConfirmModal';
 
 interface Customer {
   id: string;
@@ -26,6 +28,9 @@ export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
   useEffect(() => {
     fetchCustomers();
@@ -40,18 +45,35 @@ export default function CustomersPage() {
       }
     } catch (error) {
       console.error('Error fetching customers:', error);
-      // Fallback: charger depuis la DB directement
-      loadCustomersFromDB();
+    } finally {
+      setLoading(false);
     }
   };
 
-  const loadCustomersFromDB = async () => {
+  const handleEdit = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setShowModal(true);
+  };
+
+  const handleDelete = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedCustomer) return;
+    
     try {
-      const response = await fetch('/api/healthcheck');
-      // Pour l'instant on simule les données
-      setLoading(false);
+      const response = await fetch(`/api/customers/${selectedCustomer.id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        fetchCustomers();
+        setSelectedCustomer(null);
+      }
     } catch (error) {
-      setLoading(false);
+      console.error('Delete error:', error);
     }
   };
 
@@ -71,7 +93,6 @@ export default function CustomersPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -81,12 +102,11 @@ export default function CustomersPage() {
           <h1 className="text-3xl font-bold text-white mb-2">Customers</h1>
           <p className="text-gray-400">Manage your customer database</p>
         </div>
-        <Button icon={<UserPlus className="w-4 h-4" />}>
+        <Button icon={<UserPlus className="w-4 h-4" />} onClick={() => setShowModal(true)}>
           Add Customer
         </Button>
       </motion.div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardContent className="pt-6">
@@ -143,7 +163,6 @@ export default function CustomersPage() {
         </Card>
       </div>
 
-      {/* Customers Table */}
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
@@ -162,11 +181,6 @@ export default function CustomersPage() {
         <CardContent>
           {loading ? (
             <div className="text-center py-8 text-gray-400">Loading customers...</div>
-          ) : customers.length === 0 ? (
-            <div className="text-center py-8 text-gray-400">
-              <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No customers found. Customer data will appear here.</p>
-            </div>
           ) : (
             <Table>
               <TableHeader>
@@ -212,9 +226,24 @@ export default function CustomersPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Button size="sm" variant="ghost" icon={<Eye className="w-4 h-4" />}>
-                        View
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          icon={<Edit className="w-4 h-4" />}
+                          onClick={() => handleEdit(customer)}
+                        >
+                          Edit
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          icon={<Trash2 className="w-4 h-4" />}
+                          onClick={() => handleDelete(customer)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -223,6 +252,21 @@ export default function CustomersPage() {
           )}
         </CardContent>
       </Card>
+
+      <CustomerModal
+        isOpen={showModal}
+        onClose={() => { setShowModal(false); setSelectedCustomer(null); }}
+        onSuccess={fetchCustomers}
+        customer={selectedCustomer}
+      />
+
+      <DeleteConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmDelete}
+        title="Delete Customer"
+        message={`Are you sure you want to delete ${selectedCustomer?.first_name} ${selectedCustomer?.last_name}?`}
+      />
     </div>
   );
 }

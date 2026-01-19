@@ -13,6 +13,38 @@ interface Customer {
   created_at: string;
 }
 
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { email, first_name, last_name, phone, is_active } = body;
+
+    if (!email || !first_name || !last_name) {
+      return NextResponse.json(
+        { error: 'Email, first name, and last name are required' },
+        { status: 400 }
+      );
+    }
+
+    const result = await query<Customer>(
+      `INSERT INTO customers (email, first_name, last_name, phone, is_active)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING *`,
+      [email, first_name, last_name, phone, is_active ?? true]
+    );
+
+    return NextResponse.json({
+      success: true,
+      data: result[0],
+    });
+  } catch (error) {
+    console.error('Customer POST error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;

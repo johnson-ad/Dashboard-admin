@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { query, queryOne } from '@/lib/db';
 
-export async function POST(request: NextRequest) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const body = await request.json();
     const {
@@ -16,21 +19,22 @@ export async function POST(request: NextRequest) {
       is_active,
     } = body;
 
-    if (!code || !discount_type || discount_value === undefined) {
-      return NextResponse.json(
-        { error: 'Code, discount type, and discount value are required' },
-        { status: 400 }
-      );
-    }
-
     const result = await query(
-      `INSERT INTO coupons 
-       (code, description, discount_type, discount_value, minimum_order_amount, 
-        usage_limit, valid_from, valid_until, is_active)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-       RETURNING *`,
+      `UPDATE coupons SET
+        code = $1,
+        description = $2,
+        discount_type = $3,
+        discount_value = $4,
+        minimum_order_amount = $5,
+        usage_limit = $6,
+        valid_from = $7,
+        valid_until = $8,
+        is_active = $9,
+        updated_at = NOW()
+      WHERE id = $10
+      RETURNING *`,
       [
-        code.toUpperCase(),
+        code,
         description,
         discount_type,
         discount_value,
@@ -38,7 +42,8 @@ export async function POST(request: NextRequest) {
         usage_limit,
         valid_from,
         valid_until,
-        is_active ?? true,
+        is_active,
+        params.id,
       ]
     );
 
@@ -47,7 +52,7 @@ export async function POST(request: NextRequest) {
       data: result[0],
     });
   } catch (error) {
-    console.error('Coupon POST error:', error);
+    console.error('Coupon PUT error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -55,18 +60,19 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    const coupons = await query(
-      `SELECT * FROM coupons ORDER BY created_at DESC`
-    );
+    await query('DELETE FROM coupons WHERE id = $1', [params.id]);
 
     return NextResponse.json({
       success: true,
-      data: coupons,
+      message: 'Coupon deleted successfully',
     });
   } catch (error) {
-    console.error('Coupons GET error:', error);
+    console.error('Coupon DELETE error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
