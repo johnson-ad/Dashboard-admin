@@ -1,6 +1,6 @@
 {
   "name": "dashboard-admin-ecommerce",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Dashboard Admin e-commerce professionnel avec design glassmorphique et sécurité avancée",
   "private": true,
   "scripts": {
@@ -11,14 +11,16 @@
     "type-check": "tsc --noEmit",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
-    "docker:build": "docker-compose build"
+    "docker:build": "docker-compose build",
+    "docker:logs": "docker-compose logs -f",
+    "setup": "bash scripts/setup.sh",
+    "generate-secrets": "bash scripts/generate-secrets.sh"
   },
   "dependencies": {
     "next": "^14.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "typescript": "^5.3.3",
-    "@supabase/supabase-js": "^2.39.3",
     "framer-motion": "^11.0.3",
     "recharts": "^2.10.4",
     "react-hook-form": "^7.49.3",
@@ -30,10 +32,7 @@
     "date-fns": "^3.2.0",
     "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^9.0.2",
-    "express-rate-limit": "^7.1.5",
-    "helmet": "^7.1.0",
-    "express-validator": "^7.0.1",
-    "dompurify": "^3.0.8",
+    "pg": "^8.11.3",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
@@ -42,7 +41,7 @@
     "@types/react-dom": "^18.2.18",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.5",
-    "@types/dompurify": "^3.0.5",
+    "@types/pg": "^8.10.9",
     "@types/uuid": "^9.0.7",
     "autoprefixer": "^10.4.17",
     "postcss": "^8.4.33",
@@ -53,5 +52,26 @@
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=9.0.0"
-  }
+  },
+  "keywords": [
+    "dashboard",
+    "admin",
+    "ecommerce",
+    "nextjs",
+    "react",
+    "typescript",
+    "tailwindcss",
+    "glassmorphism",
+    "postgresql"
+  ],
+  "author": "Dashboard Admin Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/johnson-ad/Dashboard-admin.git"
+  },
+  "bugs": {
+    "url": "https://github.com/johnson-ad/Dashboard-admin/issues"
+  },
+  "homepage": "https://github.com/johnson-ad/Dashboard-admin#readme"
 }
